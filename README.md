@@ -1,4 +1,4 @@
-# musictools
+# Music-tag-Tools
 
 Tidy up an **mp3 / flac** library from the command line: consistent tags, covers, lyrics, and covers that show up in Windows.
 No code editing: everything is a command or an option. **Every command only previews until you add `--apply`.**
