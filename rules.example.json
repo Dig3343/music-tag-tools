@@ -1,0 +1,18 @@
+{
+  "rules": [
+    {
+      "album_regex": "^greatest hits of the 80s$",
+      "set": { "artist": "Various Artists" },
+      "compilation": true,
+      "artist_in_title": true
+    },
+    {
+      "album_regex": "^my soundtrack.*deluxe",
+      "set": { "album": "My Soundtrack: Deluxe Edition", "artist": "Example Composer" }
+    },
+    {
+      "album_regex": "^some album$",
+      "set": { "discnumber": "1/1" }
+    }
+  ]
+}
