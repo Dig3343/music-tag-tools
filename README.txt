@@ -6,17 +6,44 @@ No code editing: everything is a command or an option. Every command only previe
 
 Back up your music before using --apply.
 
-Intended use: personal, non-commercial organization of your own music collection. The online services it talks to (AcoustID, MusicBrainz, LRCLIB, Cover Art Archive) are meant for personal use, and AcoustID is free for non-commercial use only.
+Intended use: personal organization of your own music collection. The online services it talks to (AcoustID, MusicBrainz, LRCLIB, Cover Art Archive) are meant for personal use, and AcoustID is free for non-commercial use only.
 
 ================================================================================
 INSTALL (3 STEPS)
 ================================================================================
 
 1. Install Python 3.8+ (https://www.python.org/downloads/) (on Windows tick "Add Python to PATH").
-2. Open a terminal and run pip install mutagen.
+2. Open a terminal and run pip install mutagen customtkinter (customtkinter is only for the window).
 3. Unzip this project and, inside its folder, run python main.py (on Windows py main.py).
 
 Run it with no arguments to get a short menu that asks what to do and which folder.
+
+================================================================================
+GRAPHICAL WINDOW (NO TYPING)
+================================================================================
+
+pip install customtkinter
+python main.py gui
+
+On Windows you can also double-click musictools_gui.pyw, or use the ready-made musictools.exe (below).
+
+The window has one tab per step (Start, Tags, Online, Covers, Windows covers), with a short explanation next to every option. Choose your music folder, pick a tab and press Preview; nothing changes until you press Apply changes and confirm. The log shows what is happening live, Stop cancels, and Open reports folder opens the CSV reports.
+
+- Right side (drag the divider to resize it; tables scroll sideways): Results shows a table of every change (file, field, before, after, reason) after a Preview or Apply; Tracks lists all the tracks of your folder with a small cover, number, title, artist, album, album artist, lyrics and format (ID3 version), with search, filters (no cover / no lyrics / no album artist) and sortable columns; Log has the raw text.
+- Instructions button: explains every tab and option inside the program.
+- IT / EN button: switches the window between Italian and English (the log of the commands stays in English). The first time it follows your Windows language.
+- Without customtkinter the program falls back to a simpler English-only window.
+
+The window remembers your folder, rules file, AcoustID key, fpcalc path, email and language in a plain-text file, .musictools_gui.json in your home folder. Delete it to forget them.
+
+================================================================================
+WINDOWS PROGRAM (NO TERMINAL)
+================================================================================
+
+Download musictools.exe from the latest release (../../releases/latest) and double-click it: it opens the window described above. Nothing to install.
+
+- Windows may show "Windows protected your PC" because the program is not code-signed. Click More info, then Run anyway. Some antivirus programs also warn about programs made with PyInstaller; if in doubt, use the Python version.
+- For --match audio you still need fpcalc.exe (see below) and your free AcoustID key; the window has a field for each.
 
 ================================================================================
 COMMANDS
@@ -135,6 +162,14 @@ The online tests use fake service answers; no network is needed.
 LICENSE
 ================================================================================
 
-MIT, see LICENSE.
+musictools is free software under the GNU General Public License, version 3 or (at your option) any later version (GPL-3.0-or-later); see LICENSE. You can use, study, change and share it, but if you distribute a modified version it must stay under the same license, with its source code.
 
-This project uses mutagen (https://github.com/quodlibet/mutagen) (GPL-2.0-or-later) to read and write tags. It is installed separately (pip install mutagen) and is not included in this repository, the same arrangement used by other MIT projects such as beets (https://github.com/beetbox/beets) and MediaFile (https://github.com/beetbox/mediafile). Whether that makes a combined work subject to the GPL is debated; a bundle that includes mutagen itself (e.g. a frozen .exe) must comply with the GPL.
+The license does not restrict commercial use. The intended use is personal (organizing your own music), and the online services it uses have their own rules: for example AcoustID is free for non-commercial use only.
+
+  mutagen (https://github.com/quodlibet/mutagen)                 : GPL-2.0-or-later - read/write tags; bundled in musictools.exe
+  customtkinter (https://github.com/TomSchimansky/CustomTkinter) : MIT - the window; bundled in musictools.exe
+  Pillow (https://python-pillow.org/)                            : MIT-CMU (HPND) - small covers in the window; bundled in musictools.exe
+  PyInstaller (https://pyinstaller.org/)                         : GPL-2.0-or-later with a bootloader exception - builds musictools.exe
+  Chromaprint / fpcalc (https://acoustid.org/chromaprint)        : LGPL-2.1 (as a whole) - optional separate program, not included
+
+The source code that corresponds to every musictools.exe is the tag of the same version in this repository. See THIRD_PARTY.md for details.

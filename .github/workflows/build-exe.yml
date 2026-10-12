@@ -1,0 +1,43 @@
+name: build-windows-exe
+
+# Builds musictools.exe on Windows. Run it by hand (Actions tab -> build-windows-exe -> Run workflow)
+# or it runs by itself when you publish a release, and attaches the .exe to that release.
+on:
+  workflow_dispatch:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: pip install mutagen customtkinter pillow pyinstaller
+      - name: Build
+        shell: bash
+        run: |
+          pyinstaller --noconfirm --onefile --windowed --name musictools \
+            --icon assets/icon.ico \
+            --add-data "assets/icon.ico;assets" --add-data "assets/icon.png;assets" \
+            --collect-all customtkinter \
+            musictools_app.py
+      - name: Smoke test (command line mode)
+        shell: bash
+        run: ./dist/musictools.exe --version
+      - uses: actions/upload-artifact@v4
+        with:
+          name: musictools-windows
+          path: dist/musictools.exe
+      - name: Attach to the release
+        if: github.event_name == 'release'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "${{ github.event.release.tag_name }}" dist/musictools.exe LICENSE THIRD_PARTY.md --clobber

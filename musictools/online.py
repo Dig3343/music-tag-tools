@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """'online' command: fill in missing metadata, cover art and lyrics from free online services.
 
   * metadata  - MusicBrainz (https://musicbrainz.org, open data): release date, genre, track and

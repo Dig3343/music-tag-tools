@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """The 'covers' tool: checks the covers embedded in the files and fills the gaps.
 
 For each album (and for each disc, if the album has more than one):

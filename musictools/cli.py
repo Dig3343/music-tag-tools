@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Command line interface: musictools tags | online | covers | id3v23 (or no arguments for a menu)."""
 
 import argparse
@@ -30,6 +31,7 @@ def welcome(prog="python main.py"):
               f'  {prog} tags "D:/Music" --apply    really changes the files',
               f"  {prog} tags --help                all options of a command",
               "",
+              f"  {prog} gui                        open the graphical window (no typing needed)",
               "",
               "Back up your music before using --apply."]
     return "\n".join(lines)
@@ -111,6 +113,13 @@ def main(argv=None):
     interactive = False
     if argv is None:
         argv = sys.argv[1:]
+    if argv and argv[0] == "gui":
+        try:
+            from .gui_ctk import run_gui          # modern look, needs: pip install customtkinter
+        except ImportError:
+            from .gui import run_gui              # plain tkinter, nothing to install
+        run_gui()
+        return 0
     if not argv:
         print(welcome())
         if not (sys.stdin.isatty() and sys.stdout.isatty()):

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """The 'tags' tool: tidies up artist, album artist, album titles and duplicates.
 
 For each album (= files in the same folder with the same album title) the tool:

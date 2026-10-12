@@ -1,1 +1,3 @@
 mutagen>=1.47
+customtkinter>=5.2    # only for the window (python main.py gui)
+pillow>=10          # only for the window (small covers in the Tracks table)

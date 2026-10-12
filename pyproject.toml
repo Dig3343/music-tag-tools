@@ -8,8 +8,9 @@ dynamic = ["version"]
 description = "Tag, cover and ID3 cleanup for mp3/flac libraries"
 readme = "README.md"
 requires-python = ">=3.8"
-license = { text = "MIT" }
+license = { text = "GPL-3.0-or-later" }
 dependencies = ["mutagen>=1.47"]
+classifiers = ["License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)"]
 
 [project.scripts]
 musictools = "musictools.cli:main"

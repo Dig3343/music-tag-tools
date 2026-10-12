@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """'id3v23' command: convert mp3 tags to ID3v2.3.
 
 Why: Windows Explorer and Windows Media Player often do NOT show the cover art when a file

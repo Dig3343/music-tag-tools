@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Minimal test data (an empty mp3 and three differently coloured JPEGs) and helper functions."""
 
 import base64
