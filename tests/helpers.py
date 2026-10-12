@@ -1,4 +1,4 @@
-"""Dati di prova minimi (un mp3 vuoto e tre JPEG di colore diverso) e funzioni di aiuto."""
+"""Minimal test data (an empty mp3 and three differently coloured JPEGs) and helper functions."""
 
 import base64
 import shutil
@@ -23,7 +23,7 @@ GREEN_JPG = base64.b64decode(
 
 
 def make_track(folder, name, **tags):
-    """Crea un mp3 in 'folder' con i tag dati (title, artist, album, albumartist, tracknumber, discnumber...)."""
+    """Create an mp3 in 'folder' with the given tags (title, artist, album, albumartist, tracknumber, discnumber...)."""
     folder = Path(folder)
     folder.mkdir(parents=True, exist_ok=True)
     path = folder / name

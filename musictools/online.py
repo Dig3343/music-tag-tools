@@ -118,6 +118,7 @@ class Http:
         self.sleep = sleep
         self.last_request = {}
         self.failures = 0
+        self.error_counts = Counter()      # HTTP status -> how many answers had it
 
     # -- cache
     def _cache_path(self, url):
@@ -165,6 +166,7 @@ class Http:
                     retry = exc.headers.get("Retry-After") if exc.headers else None
                     self.sleep(float(retry) if retry and retry.isdigit() else 2.0 * attempt)
                     continue
+                self.error_counts[exc.code] += 1
                 return None
             except (urllib.error.URLError, OSError, ValueError):
                 if attempt < 3:
@@ -228,7 +230,7 @@ def similarity(a, b):
     return ratio
 
 
-def find_release(http, artist, album, local_count):
+def find_release(http, artist, album, local_count, log=None):
     """Search MusicBrainz for the album. Returns the best search hit (dict) or None."""
     query = f"release:{lucene_phrase(album)}"
     is_various = not artist or artist.lower() == VARIOUS.lower()
@@ -237,22 +239,55 @@ def find_release(http, artist, album, local_count):
     url = f"{MB_API}/release/?query={urllib.parse.quote(query)}&fmt=json&limit=10"
     data = http.get_json(url)
     best, best_score = None, 0.0
-    for hit in (data or {}).get("releases", []):
+    hits = (data or {}).get("releases", [])
+    if log:
+        top = hits[0] if hits else None
+        log(f"search returned {len(hits)} results" + (
+            f" (first: '{top.get('title')}' by '{credit_text(top.get('artist-credit'))}', score {top.get('score')})"
+            if top else ""))
+    def reject(hit, reason):
+        if log:
+            log(f"  skipped '{hit.get('title')}': {reason}")
+
+    for hit in hits:
         score = int(hit.get("score", 0))
         if score < MIN_RELEASE_SCORE:
+            reject(hit, f"search score {score} is too low")
             continue
         title_sim = similarity(hit.get("title", ""), album)
         if title_sim < MIN_TITLE_SIMILARITY:
+            reject(hit, "title is too different")
             continue
         if not is_various and similarity(credit_text(hit.get("artist-credit")), artist) < 0.6:
+            reject(hit, "artist is too different")
             continue
         count = hit.get("track-count") or 0
         if count and local_count > count:
+            reject(hit, f"it has {count} tracks but you have {local_count}")
             continue                    # we have more tracks than this release: wrong edition
-        value = score / 100 + title_sim + (0.5 if count == local_count else 0)
+        value = (score / 100 + title_sim + (0.5 if count == local_count else 0)
+                 + (1.0 if title_sim >= 0.999 else 0))      # an exact title beats a similar one
         if value > best_score:
             best, best_score = hit, value
     return best
+
+
+def group_artist(items):
+    """The artist of an album: the album artist, else the first artist shared by most tracks.
+    Returns '' when there's no clear main artist (a compilation)."""
+    named = Counter(t["tags"]["albumartist"] for t in items if t["tags"]["albumartist"])
+    if named:
+        return named.most_common(1)[0][0]
+    firsts = Counter()
+    for t in items:
+        names = split_artists(t["tags"]["artist"], split_comma=True)
+        if names:
+            firsts[names[0]] += 1
+    if firsts:
+        name, count = firsts.most_common(1)[0]
+        if count * 2 > len(items):
+            return name
+    return ""
 
 
 def release_details(http, mbid):
@@ -595,13 +630,14 @@ def run(args):
     pending_lyrics = []                    # (path, text, synced text or "")
 
     try:
-        albums = defaultdict(list)
+        albums = defaultdict(list)           # one album = same folder + same album title
         for t in tracks:
-            artist = t["tags"]["albumartist"] or t["tags"]["artist"]
-            albums[(artist, t["tags"]["album"])].append(t)
+            albums[(t["path"].parent, key_text(t["tags"]["album"]))].append(t)
 
         if do_meta or do_covers or (do_lyrics and mode != "tags"):
-            for (artist, album), items in sorted(albums.items()):
+            for (_folder, _key), items in sorted(albums.items(), key=lambda kv: str(kv[0])):
+                album = Counter(t["tags"]["album"] for t in items).most_common(1)[0][0]
+                artist = group_artist(items)
                 if not album:
                     continue
                 label = f"{artist} - {album}" if artist else album
@@ -632,7 +668,8 @@ def run(args):
                 if not (do_meta or do_covers):
                     continue                      # lyrics only: the identification is all we need
                 if hit is None and mode != "audio":
-                    hit = find_release(http, artist, query_album, len(items))
+                    hit = find_release(http, artist, query_album, len(items),
+                                       log=(lambda m, n=label: print(f"  {n}: {m}")) if args.verbose else None)
                 if hit is None:
                     stats["albums without a confident match"] += 1
                     no_match.append(label)
@@ -646,7 +683,12 @@ def run(args):
                 if do_meta and release:
                     mb_tracks = release_tracks(release)
                     pairs = pair_with_fingerprints(items, found, mb_tracks)
-                    for index, item in enumerate(items):
+                    if len(pairs) * 2 < len(items):
+                        # most of your tracks don't exist on this release: probably another edition
+                        stats["albums skipped: your tracks don't fit the release"] += 1
+                        no_match.append(label + "  (found a release, but your tracks don't fit it)")
+                        pairs = None
+                    for index, item in enumerate(items if pairs is not None else []):
                         changes = metadata_changes(item, pairs.get(index), release, args.overwrite)
                         for field, value in changes.items():
                             rows.append([str(item["path"]), "metadata", field,
@@ -748,6 +790,11 @@ def run(args):
         print(f"  {label}: {n}")
     if errors:
         print(f"  write errors: {errors}")
+    failed = getattr(http, "error_counts", None)
+    if failed:
+        details = ", ".join(f"HTTP {code} x{n}" for code, n in sorted(failed.items()))
+        print(f"  WARNING: some online requests failed ({details}). "
+              "Results may be incomplete: try again later.")
     name = "online_applied.csv" if args.apply else "online_preview.csv"
     log = write_csv(args.out_dir, name, ["file", "kind", "field", "before", "after", "source"], rows)
     print(f"Details saved to: {log}")

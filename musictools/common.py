@@ -2,6 +2,7 @@
 
 import csv
 import re
+import time
 from pathlib import Path
 
 AUDIO_EXTS = {".mp3", ".flac"}
@@ -52,14 +53,25 @@ def safe_name(name):
 
 
 def write_csv(out_dir, name, header, rows):
-    """Write an Excel-friendly CSV into the output folder and return its path."""
+    """Write an Excel-friendly CSV into the output folder and return its path.
+    If the file is locked (open in Excel) it is saved under a new name instead."""
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     path = out_dir / name
-    with open(path, "w", newline="", encoding="utf-8-sig") as fh:
-        writer = csv.writer(fh)
-        writer.writerow(header)
-        writer.writerows(rows)
+
+    def write(target):
+        with open(target, "w", newline="", encoding="utf-8-sig") as fh:
+            fh.write("sep=,\r\n")        # tells Excel (in any language) that columns are separated by commas
+            writer = csv.writer(fh)
+            writer.writerow(header)
+            writer.writerows(rows)
+
+    try:
+        write(path)
+    except PermissionError:
+        path = out_dir / f"{Path(name).stem}_{time.strftime('%H%M%S')}{Path(name).suffix}"
+        print(f"  [note] the previous report is open in another program (Excel?); saved as {path.name}")
+        write(path)
     return path
 
 

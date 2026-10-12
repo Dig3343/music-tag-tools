@@ -10,10 +10,3 @@ build/
 # your personal rules
 my_rules.json
 _reports/
-# IDE e configurazioni locali
-.vscode/
-.idea/
-
-# File di sistema
-.DS_Store
-Thumbs.db

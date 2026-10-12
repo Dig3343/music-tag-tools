@@ -161,6 +161,24 @@ class OnlineTest(unittest.TestCase):
             run_online(d, FakeHttp(), "--lyrics", "--apply")
             self.assertEqual(ID3(files[0]).getall("USLT")[0].text, "my own words")
 
+    def test_guest_artists_do_not_split_an_album(self):
+        with TempDir() as d:
+            files = [make_track(d, "1.mp3", artist="Test Artist", album="Test Album", title="Song 1"),
+                     make_track(d, "2.mp3", artist="Test Artist, Some Guest", album="Test Album", title="Song 2"),
+                     make_track(d, "3.mp3", artist="TEST ARTIST", album="Test Album", title="Song 3")]
+            fake = FakeHttp()
+            run_online(d, fake, "--metadata", "--apply")
+            searches = [u for u in fake.urls if "musicbrainz.org/ws/2/release/?" in u]
+            self.assertEqual(len(searches), 1)
+            self.assertTrue(all(EasyMP3(f)["date"] == ["1999-04-01"] for f in files))
+
+    def test_release_whose_tracks_dont_fit_is_skipped(self):
+        with TempDir() as d:
+            files = [make_track(d, f"{i}.mp3", artist="Test Artist", album="Test Album",
+                                title=f"Unrelated {i}") for i in (1, 2, 3)]
+            run_online(d, FakeHttp(), "--metadata", "--apply")
+            self.assertNotIn("musicbrainz_albumid", EasyMP3(files[0]))
+
     def test_unconfident_album_untouched(self):
         with TempDir() as d:
             files = [make_track(d, "1.mp3", artist="Test Artist", album="Totally Different", title="x")]
@@ -298,3 +316,20 @@ class HttpTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class CsvLockTest(unittest.TestCase):
+    def test_locked_report_is_saved_under_another_name(self):
+        from musictools.common import write_csv
+        with TempDir() as d:
+            real_open = open
+
+            def locked(path, *a, **kw):
+                if str(path).endswith("report.csv"):
+                    raise PermissionError(13, "Permission denied")
+                return real_open(path, *a, **kw)
+            with mock.patch("builtins.open", side_effect=locked), \
+                    contextlib.redirect_stdout(io.StringIO()):
+                path = write_csv(d, "report.csv", ["a"], [["1"]])
+            self.assertNotEqual(path.name, "report.csv")
+            self.assertTrue(path.exists())

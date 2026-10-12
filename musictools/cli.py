@@ -30,6 +30,7 @@ def welcome(prog="python main.py"):
               f'  {prog} tags "D:/Music" --apply    really changes the files',
               f"  {prog} tags --help                all options of a command",
               "",
+              "",
               "Back up your music before using --apply."]
     return "\n".join(lines)
 

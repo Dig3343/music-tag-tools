@@ -32,7 +32,7 @@ python main.py tags "D:/Music" --apply     # really changes the files
 python main.py tags --help                 # every option of a command
 ```
 
-Every command prints what it is going to do (PREVIEW or APPLY), asks "did you back up?" before changing files, and ends with a summary. The CSV reports (before/after of every change; open them with Excel) are saved in a `_reports` folder created inside your music folder. Duplicates are moved, never deleted, to `_duplicates`.
+Every command prints what it is going to do (PREVIEW or APPLY), asks "did you back up?" before changing files, and ends with a summary. The CSV reports (before/after of every change; open them with Excel) are saved in a `_reports` folder created inside your music folder. Duplicates are moved, never deleted, to `_duplicates`. If a report is open in Excel when a command ends, the new one is saved under a different name (with the time) instead of failing.
 
 Options common to all commands: `--apply`, `--yes` (skip the confirmation), `--out-dir FOLDER` (where to save reports).
 
@@ -88,6 +88,8 @@ python main.py online "D:/Music" --contact you@example.com --apply
 | `--contact EMAIL` | identifies you to MusicBrainz (or set `MUSICTOOLS_CONTACT`) |
 | `--no-cache`, `--verbose` | ignore saved answers / print every decision |
 
+How albums are matched: an album is the set of files in one folder with the same album title. A MusicBrainz release is accepted only if its title and artist agree and it has at least as many tracks as you do. If most of your tracks don't fit the release (probably another edition) the album is skipped and listed, never guessed. Add `--verbose` to see why a release was rejected.
+
 What it fills in, **only where empty** unless you use `--overwrite`:
 - **metadata** (MusicBrainz): date, original date, genre, track/disc numbers, missing titles and artists, MusicBrainz IDs. The album must match by title, artist and track count, otherwise it is skipped and listed.
 - **covers** (Cover Art Archive): only for albums where *no* track has a usable cover (use `covers` to spread an existing one).
@@ -101,10 +103,10 @@ What it fills in, **only where empty** unless you use `--overwrite`:
 | `audio` | slow (about a second per track) | safest: audio fingerprint; unrecognized tracks are left untouched |
 | `both` | slow | fingerprint first, tags as fallback |
 
-`audio` and `both` also pair every file with the right track, flag tracks whose tags disagree with the audio (`check` rows in the report; titles aren't changed without `--overwrite`) and look up lyrics with the identified title/artist.
+`audio` and `both` are newer and less tested than `tags`: always preview first. They also pair every file with the right track, flag tracks whose tags disagree with the audio (`check` rows in the report; titles aren't changed without `--overwrite`) and look up lyrics with the identified title/artist.
 
 One-time setup for `audio` / `both`:
-1. Download `fpcalc` from <https://acoustid.org/chromaprint> (Windows: `chromaprint-fpcalc-1.6.1-windows-x86_64.zip`, 64-bit only), extract it, and put `fpcalc.exe` in your PATH or pass `--fpcalc "C:\path\fpcalc.exe"`.
+1. Download `fpcalc` from <https://acoustid.org/chromaprint> (Windows: `chromaprint-fpcalc-1.6.1-windows-x86_64.zip`, 64-bit only), extract it, and put `fpcalc.exe` next to `main.py` and pass `--fpcalc .\fpcalc.exe` (or put it in your PATH, or pass its full path).
 2. Get a free key at <https://acoustid.org/new-application> and pass it with `--acoustid-key` (or set `ACOUSTID_API_KEY`).
 
 AcoustID is free for **non-commercial use only** and limited to 3 requests per second. Chromaprint is MIT-licensed but, as a whole, LGPL 2.1 because it includes parts of FFmpeg; musictools only runs it as a separate program and doesn't include it.
@@ -116,6 +118,9 @@ Notes: the services are rate-limited and answers are cached in `_reports/online_
 - **Covers still missing in Windows Explorer** -> run `id3v23 --apply`, then reopen the folder.
 - **`python` / `py` not found** -> reinstall Python with "Add Python to PATH" ticked.
 - **Online commands stop with "can't reach the online services"** -> check your connection and run again; finished answers are cached.
+- **`PermissionError` on a report** -> the .csv was open in Excel. Close it (recent versions save under a new name instead).
+- **`Folder not found`** -> check the path in quotes; run the command from the project folder (the one containing `main.py`).
+- **"found a release, but your tracks don't fit it"** -> MusicBrainz has that edition with different tracks; nothing was changed.
 - **An album wasn't matched** -> it is listed at the end of the `online` run; fix its tags with `tags` or use `--match audio`.
 
 ## Tests
