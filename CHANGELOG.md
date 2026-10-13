@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.1
+- Rebuilt both GUI tab bars with evenly sized, rounded tabs that span their panels, removing the stray divider line.
+- Fixed the initial window size on high-DPI displays and made the Help window open and focus reliably on Windows.
+- Renamed Instructions to Help / Aiuto, aligned the help sections with the tab names, and kept the quick workflow guide on the Start page.
+- Added a short ID3 v2.3 note, a few optional-field hints, and a dark yellow Stop button with white text.
+
 ## 1.2.0
 - **License changed from MIT to GPL-3.0-or-later**, because `musictools.exe` bundles mutagen (GPL). Added `THIRD_PARTY.md`.
 - New graphical window: `python main.py gui` (or double-click `musictools_gui.pyw` on Windows). Same commands and the same preview-first safety, with live log, Stop button and a confirmation before applying.

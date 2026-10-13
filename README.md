@@ -7,26 +7,25 @@ No code editing: everything is a command or an option. **Every command only prev
 
 **Intended use:** personal organization of your own music collection. The online services it talks to (AcoustID, MusicBrainz, LRCLIB, Cover Art Archive) are meant for personal use, and AcoustID is free for non-commercial use only.
 
-## Install (3 steps)
+## Install (4 steps)
 
 1. Install [Python 3.8+](https://www.python.org/downloads/) (on Windows tick "Add Python to PATH").
-2. Open a terminal and run `pip install mutagen customtkinter` (customtkinter is only for the window).
-3. Unzip this project and, inside its folder, run `python main.py` (on Windows `py main.py`).
+2. Download and unzip this project.
+3. Open a terminal inside the project folder and run `python -m pip install -r requirements.txt` (on Windows, `py -m pip install -r requirements.txt`).
+4. Run `python main.py` (on Windows, `py main.py`).
 
 Run it with no arguments to get a short menu that asks what to do and which folder.
 
 ## Graphical window (no typing)
 
 ```
-pip install customtkinter
 python main.py gui
 ```
-On Windows you can also double-click `musictools_gui.pyw`, or use the ready-made `musictools.exe` (below).
+On Windows, run `py main.py gui`, or double-click `musictools_gui.pyw`, or use the ready-made `musictools.exe` (below).
 
-The window has one tab per step (**Start, Tags, Online, Covers, Windows covers**), with a short explanation next to every option. Choose your music folder, pick a tab and press **Preview**; nothing changes until you press **Apply changes** and confirm. The log shows what is happening live, **Stop** cancels, and **Open reports folder** opens the CSV reports.
+The window has one tab per step (**Start, Tags, Online, Covers, ID3 v2.3**). Start gives a quick overview of the workflow; press **Help** (**Aiuto** in Italian) for explanations of the tabs and options. Choose your music folder, pick a tab and press **Preview**; nothing changes until you press **Apply changes** and confirm. The log shows what is happening live, **Stop** cancels, and **Open reports folder** opens the CSV reports.
 
 - **Right side** (drag the divider to resize it; tables scroll sideways): *Results* shows a table of every change (file, field, before, after, reason) after a Preview or Apply; *Tracks* lists all the tracks of your folder with a small cover, number, title, artist, album, album artist, lyrics and format (ID3 version), with search, filters (no cover / no lyrics / no album artist) and sortable columns; *Log* has the raw text.
-- **Instructions** button: explains every tab and option inside the program.
 - **IT / EN** button: switches the window between Italian and English (the log of the commands stays in English). The first time it follows your Windows language.
 - Without `customtkinter` the program falls back to a simpler English-only window.
 

@@ -47,9 +47,19 @@ def run_gui():
     set_app_id()                                    # own taskbar icon on Windows
     root = ctk.CTk()
     root.title(f"musictools {__version__}")
-    screen_h = root.winfo_screenheight()
-    root.geometry(f"1320x{min(840, screen_h - 80)}")
-    root.minsize(1000, 600)
+    try:                                            # Windows display scaling (125%, 150%...); 1.0 elsewhere
+        sc = float(ctk.ScalingTracker.get_window_scaling(root))
+    except Exception:
+        sc = 1.0
+    sc = max(1.0, sc)
+    # Tk window geometry uses screen pixels directly; only CustomTkinter widgets
+    # are scaled. Dividing the screen size by `sc` makes the whole window too small.
+    usable_w, usable_h = root.winfo_screenwidth() - 30, root.winfo_screenheight() - 80
+    root.geometry(f"{min(1320, usable_w)}x{min(840, usable_h)}")
+    root.minsize(min(1000, usable_w), min(600, usable_h))
+
+    def px(value):                                  # size for plain tkinter widgets, which customtkinter does not scale
+        return int(round(value * sc))
     for delay in (250, 900):                           # customtkinter sets its own icon late on Windows
         root.after(delay, lambda: set_window_icon(root))
     mono = ctk.CTkFont(family="Consolas" if sys.platform.startswith("win") else "DejaVu Sans Mono", size=12)
@@ -59,10 +69,10 @@ def run_gui():
     lang = config.get("lang")
     state = {"proc": None, "queue": queue.Queue(), "stopped": False,
              "lang": lang if lang in LANGUAGES else detect_language(),
-             "status": ("st_ready", {}), "tab": "start", "help": None, "shell": None, "intro_log": True,
+             "status": ("st_ready", {}), "tab": "start", "help": None, "shell": None,
              "bottom": "tracks", "tracks": [], "tracks_folder": "", "scan_id": 0, "scan_q": queue.Queue(),
              "photos": {}, "result": None, "run": None, "filter": "", "sort": ("", False), "render_id": 0,
-             "scan_status": None, "search": "", "left_w": 480}
+             "scan_status": None, "search": "", "left_w": px(480)}
     ui = {}                                           # widgets that other functions need
 
     # ---- values (created once, so they survive a language change)
@@ -88,6 +98,80 @@ def run_gui():
         state["status"] = (key, fmt)
         status_var.set(t(key, **fmt))
 
+    class RoundedTabView(ctk.CTkFrame):
+        """Tab container with a full-width row of independent rounded buttons."""
+
+        def __init__(self, parent, command=None):
+            colors = ctk.ThemeManager.theme
+            frame_color = colors["CTkFrame"]["fg_color"]
+            super().__init__(parent, fg_color=frame_color, corner_radius=15, border_width=0)
+            self._command = command
+            self._pages = {}
+            self._buttons = {}
+            self._current = ""
+
+            self._bar = ctk.CTkFrame(
+                self, fg_color=colors["CTkSegmentedButton"]["fg_color"], corner_radius=10
+            )
+            self._bar.pack(fill="x", padx=10, pady=(10, 0))
+            self._content = ctk.CTkFrame(
+                self, fg_color=frame_color, corner_radius=0, border_width=0
+            )
+            self._content.pack(fill="both", expand=True, padx=10, pady=(6, 10))
+
+            self._selected_color = colors["CTkSegmentedButton"]["selected_color"]
+            self._selected_hover = colors["CTkSegmentedButton"]["selected_hover_color"]
+            self._unselected_hover = colors["CTkSegmentedButton"]["unselected_hover_color"]
+            self._text_color = colors["CTkSegmentedButton"]["text_color"]
+
+        def add(self, name):
+            page = ctk.CTkFrame(self._content, fg_color="transparent", corner_radius=0, border_width=0)
+            self._pages[name] = page
+            index = len(self._buttons)
+            self._bar.grid_columnconfigure(index, weight=1, uniform="tabs")
+            button = ctk.CTkButton(
+                self._bar,
+                text=name,
+                width=0,
+                height=32,
+                corner_radius=8,
+                border_width=0,
+                fg_color="transparent",
+                hover_color=self._unselected_hover,
+                text_color=self._text_color,
+                command=lambda tab=name: self._select(tab, notify=True),
+            )
+            button.grid(row=0, column=index, sticky="ew", padx=2, pady=2)
+            self._buttons[name] = button
+            if not self._current:
+                self._select(name)
+            return page
+
+        def _select(self, name, notify=False):
+            if name not in self._pages:
+                return
+            if self._current in self._pages:
+                self._pages[self._current].pack_forget()
+            self._current = name
+            self._pages[name].pack(fill="both", expand=True)
+            for tab_name, button in self._buttons.items():
+                selected = tab_name == name
+                button.configure(
+                    fg_color=self._selected_color if selected else "transparent",
+                    hover_color=self._selected_hover if selected else self._unselected_hover,
+                )
+            if notify and self._command is not None:
+                self._command()
+
+        def set(self, name):
+            self._select(name)
+
+        def get(self):
+            return self._current
+
+    def tabview(parent, **kwargs):
+        return RoundedTabView(parent, command=kwargs.get("command"))
+
     # ------------------------------------------------------------------ building ---
     def build():
         old_log = ""
@@ -111,11 +195,10 @@ def run_gui():
         titles = ctk.CTkFrame(head, fg_color="transparent")
         titles.pack(side="left")
         ctk.CTkLabel(titles, text=f"musictools  {__version__}", font=title_font).pack(anchor="w")
-        ctk.CTkLabel(titles, text=t("app_subtitle"), text_color=GRAY).pack(anchor="w")
         lang_btn = ctk.CTkSegmentedButton(head, values=["IT", "EN"], width=110, command=change_language)
         lang_btn.set(state["lang"].upper())
         lang_btn.pack(side="right")
-        ctk.CTkButton(head, text="?  " + t("btn_help"), width=130, command=show_help).pack(side="right", padx=(0, 10))
+        ctk.CTkButton(head, text=t("btn_help"), width=100, command=show_help).pack(side="right", padx=(0, 10))
 
         # folder
         top = ctk.CTkFrame(shell, fg_color="transparent")
@@ -123,24 +206,24 @@ def run_gui():
         ctk.CTkLabel(top, text=t("folder_label"), font=bold).pack(anchor="w")
         row = ctk.CTkFrame(top, fg_color="transparent")
         row.pack(fill="x", pady=(4, 0))
-        folder_entry = ctk.CTkEntry(row, textvariable=var["folder"], placeholder_text=t("folder_hint"))
+        folder_entry = ctk.CTkEntry(row, textvariable=var["folder"])
         folder_entry.pack(side="left", fill="x", expand=True)
         folder_entry.bind("<Return>", lambda _e: start_scan())
         folder_entry.bind("<FocusOut>", lambda _e: start_scan())
         ctk.CTkButton(row, text=t("browse"), width=110, command=browse_folder).pack(side="left", padx=(8, 0))
 
         # two panes: settings on the left, results on the right (drag the bar between them)
-        paned = tk.PanedWindow(shell, orient="horizontal", sashwidth=10, sashrelief="flat", bd=0,
+        paned = tk.PanedWindow(shell, orient="horizontal", sashwidth=px(10), sashrelief="flat", bd=0,
                                bg=root._apply_appearance_mode(root.cget("fg_color")), opaqueresize=True)
         paned.pack(fill="both", expand=True, padx=12, pady=(10, 12))
         ui["paned"] = paned
         left = ctk.CTkFrame(paned, fg_color="transparent")
         right = ctk.CTkFrame(paned, fg_color="transparent")
-        paned.add(left, minsize=420, width=state["left_w"], stretch="never")
-        paned.add(right, minsize=420, stretch="always")
+        paned.add(left, minsize=px(400), width=state["left_w"], stretch="never")
+        paned.add(right, minsize=px(420), stretch="always")
 
         # left: tabs with the settings
-        tabs = ctk.CTkTabview(left, command=lambda: state.update(tab=current_key()))
+        tabs = tabview(left, command=lambda: state.update(tab=current_key()))
         tabs.pack(fill="both", expand=True)
         ui["tabs"] = tabs
         ui["tab_names"] = {key: t("tab_" + key) for key in TAB_ORDER}
@@ -159,7 +242,8 @@ def run_gui():
         ui["preview"] = ctk.CTkButton(bar, text=t("btn_preview"), command=lambda: start(False))
         ui["apply"] = ctk.CTkButton(bar, text=t("btn_apply"), fg_color="#c0392b", hover_color="#962d22",
                                     command=lambda: start(True))
-        ui["stop"] = ctk.CTkButton(bar, text=t("btn_stop"), fg_color="gray50", hover_color="gray40",
+        ui["stop"] = ctk.CTkButton(bar, text=t("btn_stop"), fg_color="#b8860b", hover_color="#946b08",
+                                   text_color="white", text_color_disabled="white",
                                    command=stop, state="disabled")
         reports = ctk.CTkButton(bar, text=t("btn_reports"), fg_color="transparent", border_width=1,
                                 text_color=("gray10", "gray90"), command=open_reports)
@@ -174,7 +258,7 @@ def run_gui():
             fill="x", pady=(6, 0))
 
         # right: results, tracks, log
-        bottom = ctk.CTkTabview(right, command=lambda: state.update(bottom=current_bottom()))
+        bottom = tabview(right, command=lambda: state.update(bottom=current_bottom()))
         bottom.pack(fill="both", expand=True, padx=(4, 0))
         ui["bottom"] = bottom
         ui["bottom_names"] = {key: t("bt_" + key) for key in BOTTOM_ORDER}
@@ -187,7 +271,8 @@ def run_gui():
         log.tag_config("warn", foreground="#d64545")
         ui["log"] = log
         log.configure(state="normal")
-        log.insert("end", (t("log_intro").rstrip("\n") if state["intro_log"] or not old_log else old_log) + "\n")
+        if old_log:
+            log.insert("end", old_log + "\n")
         log.configure(state="disabled")
         bottom.set(ui["bottom_names"][state["bottom"]])
         render_results()
@@ -204,12 +289,12 @@ def run_gui():
 
     # every option uses two grid rows: the control (row*2) and its hint underneath (row*2+1)
     def hint(parent, row, key):
-        ctk.CTkLabel(parent, text=t(key), text_color=GRAY, wraplength=380, justify="left", anchor="w").grid(
+        # Keep only the few quick notes that help with optional, less obvious fields.
+        if key not in {"h_rules", "h_contact", "h_cover_size"}:
+            return
+        ctk.CTkLabel(parent, text=t(key), text_color=GRAY, wraplength=380,
+                     justify="left", anchor="w").grid(
             row=row * 2 + 1, column=0, columnspan=3, sticky="w", padx=(30, 0), pady=(0, 6))
-
-    def intro(parent, key):
-        ctk.CTkLabel(parent, text=t(key), wraplength=410, justify="left", anchor="w").grid(
-            row=0, column=0, columnspan=3, sticky="w", pady=(0, 10))
 
     def check(parent, row, label_key, hint_key, variable):
         ctk.CTkCheckBox(parent, text=t(label_key), variable=variable).grid(
@@ -251,7 +336,6 @@ def run_gui():
                          anchor="w").grid(row=4 + i * 2, column=0, sticky="w", padx=(4, 0))
 
     def build_tags(page):
-        intro(page, "desc_tags")
         check(page, 1, "o_no_auto", "h_no_auto", tags_flags["no_auto"])
         check(page, 2, "o_no_feat", "h_no_feat", tags_flags["no_feat"])
         check(page, 3, "o_keep_comp", "h_keep_comp", tags_flags["keep_comp"])
@@ -262,9 +346,7 @@ def run_gui():
         file_entry(page, 8, "o_rules", "h_rules", var["rules"], [("JSON", "*.json"), ("*", "*.*")])
 
     def build_online(page):
-        ctk.CTkLabel(page, text=t("desc_online"), anchor="w", justify="left", wraplength=420).pack(
-            anchor="w", pady=(0, 4))
-        sub = ctk.CTkTabview(page)
+        sub = tabview(page)
         sub.pack(fill="both", expand=True)
         a, b, c = (scrolling(sub.add(t(k))) for k in ("sub_what", "sub_match", "sub_more"))
         check(a, 0, "o_metadata", "h_metadata", online_flags["metadata"])
@@ -280,8 +362,6 @@ def run_gui():
                                      command=lambda v: var["match"].set(reverse[v]))
         seg.set(labels.get(var["match"].get(), labels["tags"]))
         seg.grid(row=1, column=0, sticky="w", pady=(0, 6))
-        ctk.CTkLabel(b, text=t("match_help"), text_color=GRAY, justify="left", anchor="w", wraplength=400).grid(
-            row=2, column=0, sticky="w", pady=(0, 10))
         entry(b, 2, "o_key", "h_key", var["key"], width=200, show="*")
         file_entry(b, 3, "o_fpcalc", "h_fpcalc", var["fpcalc"], [("fpcalc", "fpcalc*"), ("*", "*.*")])
 
@@ -295,7 +375,6 @@ def run_gui():
         check(c, 3, "o_verbose_online", "h_verbose", online_flags["verbose"])
 
     def build_covers(page):
-        intro(page, "desc_covers")
         for r, key in enumerate(("fix", "unify", "export", "inspect", "set"), start=1):
             ctk.CTkRadioButton(page, text=t("c_" + key), value=key, variable=var["covers_mode"]).grid(
                 row=r * 2, column=0, columnspan=3, sticky="w", pady=(4, 0))
@@ -308,8 +387,8 @@ def run_gui():
             ctk.CTkEntry(rng, textvariable=var[name], width=56).grid(row=0, column=i * 2 + 1, padx=(0, 14))
 
     def build_id3v23(page):
-        intro(page, "desc_id3v23")
-        ctk.CTkLabel(page, text=t("id3v23_nothing"), text_color=GRAY).grid(row=1, column=0, sticky="w")
+        ctk.CTkLabel(page, text=t("id3v23_nothing"), text_color=GRAY, wraplength=410,
+                     justify="left", anchor="w").pack(anchor="w", pady=(4, 0))
 
     # ------------------------------------------------------------- result tables ---
     def style_tables():
@@ -322,10 +401,11 @@ def run_gui():
             style.theme_use("clam")
         except Exception:
             pass
-        for name, height in (("MT.Treeview", 78), ("MTR.Treeview", 28)):
-            style.configure(name, background=bg, fieldbackground=bg, foreground=fg, rowheight=height, borderwidth=0)
+        for name, height in (("MT.Treeview", px(78)), ("MTR.Treeview", px(28))):
+            style.configure(name, background=bg, fieldbackground=bg, foreground=fg, rowheight=height, borderwidth=0,
+                            font=("", -px(13)))
             style.configure(name + ".Heading", background=head_bg, foreground=fg, relief="flat",
-                            font=("", 10, "bold"), padding=(6, 5))
+                            font=("", -px(12), "bold"), padding=(6, 5))
             style.map(name, background=[("selected", "#1f538d")], foreground=[("selected", "white")])
         style.layout("MT.Treeview", [("Treeview.treearea", {"sticky": "nswe"})])
         style.layout("MTR.Treeview", [("Treeview.treearea", {"sticky": "nswe"})])
@@ -395,7 +475,7 @@ def run_gui():
         for name in header:
             label = t("col_" + name)
             tree.heading(name, text=name if label == "col_" + name else label)
-            width = 280 if name == "file" else 170
+            width = px(280 if name == "file" else 170)
             tree.column(name, width=width, minwidth=width, anchor="w", stretch=False)
         for index, row in enumerate(res["rows"]):
             row = list(row) + [""] * (len(header) - len(row))
@@ -407,7 +487,7 @@ def run_gui():
         if Image is None:
             return None
         image = Image.open(io.BytesIO(data))
-        return ImageOps.fit(image.convert("RGB"), (68, 68))
+        return ImageOps.fit(image.convert("RGB"), (px(68), px(68)))
 
     def photo_for(track):
         key = track.get("cover_key")
@@ -438,15 +518,15 @@ def run_gui():
         menu.set(labels[state["filter"]])
         menu.pack(side="left", padx=8)
         ctk.CTkButton(bar, text=t("tr_reload"), width=90, command=lambda: start_scan(force=True)).pack(side="left")
-        ui["tr_count"] = ctk.CTkLabel(bar, text="", text_color=GRAY)
-        ui["tr_count"].pack(side="right")
+        ui["tr_count"] = ctk.CTkLabel(page, text="", text_color=GRAY, anchor="w", justify="left", wraplength=620)
+        ui["tr_count"].pack(fill="x", pady=(0, 4))
         frame, tree = make_tree(page, TRACK_COLUMNS, "MT.Treeview", show=("tree", "headings"))
         ui["tr_tree"] = tree
         tree.heading("#0", text=t("col_cover"))
-        tree.column("#0", width=96, minwidth=96, anchor="center", stretch=False)
+        tree.column("#0", width=px(96), minwidth=px(96), anchor="center", stretch=False)
         for col in TRACK_COLUMNS:
             tree.heading(col, text=t("col_" + col), command=lambda c=col: sort_by(c))
-            tree.column(col, width=TRACK_WIDTHS[col], minwidth=TRACK_WIDTHS[col], anchor="w", stretch=False)
+            tree.column(col, width=px(TRACK_WIDTHS[col]), minwidth=px(TRACK_WIDTHS[col]), anchor="w", stretch=False)
 
     def change_filter(label):
         state["filter"] = next(k for k, v in filter_labels().items() if v == label)
@@ -627,7 +707,8 @@ def run_gui():
         state["help"] = win
         win.title(f"musictools - {t('help_title')}")
         win.geometry("820x680")
-        win.after(250, lambda: set_window_icon(win))
+        win.transient(root)
+        set_window_icon(win)          # set right away: a late icon change makes the window flash and close on Windows
         box = ctk.CTkTextbox(win, wrap="word", font=ctk.CTkFont(size=13))
         box.pack(fill="both", expand=True, padx=14, pady=(14, 8))
         box.tag_config("h", foreground=ACCENT)
@@ -639,8 +720,7 @@ def run_gui():
         buttons.pack(fill="x", padx=14, pady=(0, 14))
         ctk.CTkButton(buttons, text=t("help_readme"), command=lambda: webbrowser.open(README_URL)).pack(side="left")
         ctk.CTkButton(buttons, text=t("help_close"), width=100, command=win.destroy).pack(side="right")
-        win.lift()
-        win.focus()
+        win.after(120, lambda: (win.winfo_exists() and (win.lift(), win.focus_force())))
 
     def persist():
         save_config({"folder": var["folder"].get().strip().strip('"'), "rules": var["rules"].get(),
@@ -735,7 +815,6 @@ def run_gui():
         if apply and not messagebox.askyesno(t("dlg_apply_title"), t("dlg_apply_text"), icon="warning"):
             return
         persist()
-        state["intro_log"] = False
         ui["log"].configure(state="normal")
         ui["log"].delete("1.0", "end")
         ui["log"].configure(state="disabled")

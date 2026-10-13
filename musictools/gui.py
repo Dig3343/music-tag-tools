@@ -63,7 +63,7 @@ COMMAND_INFO = (
     ("tags", "Tags", "Fix artist / album artist / album names, find duplicates."),
     ("online", "Online", "Fill in missing info, covers and lyrics from the internet."),
     ("covers", "Covers", "Find missing or broken covers and copy them from the same album."),
-    ("id3v23", "Windows covers", "Make covers show up in Windows Explorer / Media Player (ID3v2.3)."),
+    ("id3v23", "ID3 v2.3", "Make covers show up in Windows Explorer / Media Player (ID3v2.3)."),
 )
 
 
