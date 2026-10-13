@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
-"""Entry point of the Windows program (musictools.exe).
+"""Entry point for the frozen GUI program on Windows, Linux, and macOS.
 
 Double-click: opens the window. With arguments (used by the window itself, or from a terminal):
 runs the command line version.

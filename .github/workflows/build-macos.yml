@@ -1,0 +1,51 @@
+name: build-macos-app
+
+# Builds separate native macOS app bundles for Apple silicon and Intel.
+# Run it by hand from Actions, or automatically when a release is published.
+on:
+  workflow_dispatch:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-15
+            arch: arm64
+          - runner: macos-15-intel
+            arch: x86_64
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: python -m pip install -r requirements.txt pyinstaller
+      - name: Build
+        run: |
+          python -m PyInstaller --noconfirm --clean --windowed --name musictools \
+            --target-arch "${{ matrix.arch }}" \
+            --osx-bundle-identifier com.dig3343.musictools \
+            --icon assets/icon.png \
+            --add-data "assets/icon.png:assets" \
+            --add-data "assets/icon-dark.png:assets" \
+            --collect-all customtkinter \
+            musictools_app.py
+          ditto -c -k --sequesterRsrc --keepParent \
+            dist/musictools.app "dist/musictools-macos-${{ matrix.arch }}.zip"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: musictools-macos-${{ matrix.arch }}
+          path: dist/musictools-macos-${{ matrix.arch }}.zip
+      - name: Attach to the release
+        if: github.event_name == 'release'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "${{ github.event.release.tag_name }}" "dist/musictools-macos-${{ matrix.arch }}.zip" --clobber

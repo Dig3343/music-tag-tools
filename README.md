@@ -21,12 +21,12 @@ Run it with no arguments to get a short menu that asks what to do and which fold
 ```
 python main.py gui
 ```
-On Windows, run `py main.py gui`, or double-click `musictools_gui.pyw`, or use the ready-made `musictools.exe` (below).
+On Windows, run `py main.py gui`, or double-click `musictools_gui.pyw`, or use the ready-made `musictools.exe` (below). On Linux and macOS, run `python3 main.py gui` or use the platform download below.
 
 The window has one tab per step (**Start, Tags, Online, Covers, ID3 v2.3**). Start gives a quick overview of the workflow; press **Help** (**Aiuto** in Italian) for explanations of the tabs and options. Choose your music folder, pick a tab and press **Preview**; nothing changes until you press **Apply changes** and confirm. The log shows what is happening live, **Stop** cancels, and **Open reports folder** opens the CSV reports.
 
 - **Right side** (drag the divider to resize it; tables scroll sideways): *Results* shows a table of every change (file, field, before, after, reason) after a Preview or Apply; *Tracks* lists all the tracks of your folder with a small cover, number, title, artist, album, album artist, lyrics and format (ID3 version), with search, filters (no cover / no lyrics / no album artist) and sortable columns; *Log* has the raw text.
-- **IT / EN** button: switches the window between Italian and English (the log of the commands stays in English). The first time it follows your Windows language.
+- **IT / EN** button: switches the window between Italian and English (the log of the commands stays in English). The first time it follows your system language.
 - Without `customtkinter` the program falls back to a simpler English-only window.
 
 The window remembers your folder, rules file, AcoustID key, fpcalc path, email and language in a plain-text file, `.musictools_gui.json` in your home folder. Delete it to forget them.
@@ -37,6 +37,23 @@ Download `musictools.exe` from the [latest release](../../releases/latest) and d
 
 - Windows may show "Windows protected your PC" because the program is not code-signed. Click **More info**, then **Run anyway**. Some antivirus programs also warn about programs made with PyInstaller; if in doubt, use the Python version.
 - For `--match audio` you still need `fpcalc.exe` (see below) and your free AcoustID key; the window has a field for each.
+
+## Linux program (no Python installation)
+
+Download `musictools-linux-x86_64.tar.gz` from the [latest release](../../releases/latest), extract it, and run the executable:
+
+```sh
+tar -xzf musictools-linux-x86_64.tar.gz
+./musictools
+```
+
+This build targets x86_64 Linux and is built on Ubuntu 22.04. It requires glibc 2.35 or newer; on older distributions, run the Python version instead. For `--match audio` you still need `fpcalc` and your free AcoustID key; the window has a field for each.
+
+## macOS app (no Python installation)
+
+Download the matching app from the [latest release](../../releases/latest): `musictools-macos-arm64.zip` for Apple silicon or `musictools-macos-x86_64.zip` for Intel. Unzip it and open `musictools.app`.
+
+These builds are created on macOS 15. Compatibility with older macOS versions is not guaranteed. The app is not signed with an Apple Developer ID or notarized, so Gatekeeper may show a warning on first launch. If you trust the download, Control-click `musictools.app`, choose **Open**, then confirm **Open**.
 
 ## Commands
 
@@ -161,10 +178,10 @@ The license does not restrict commercial use. The *intended* use is personal (or
 
 | Component | License | How it is used |
 |---|---|---|
-| [mutagen](https://github.com/quodlibet/mutagen) | GPL-2.0-or-later | read/write tags; bundled in `musictools.exe` |
-| [customtkinter](https://github.com/TomSchimansky/CustomTkinter) | MIT | the window; bundled in `musictools.exe` |
-| [Pillow](https://python-pillow.org/) | MIT-CMU (HPND) | small covers in the window; bundled in `musictools.exe` |
-| [PyInstaller](https://pyinstaller.org/) | GPL-2.0-or-later with a bootloader exception | builds `musictools.exe` |
+| [mutagen](https://github.com/quodlibet/mutagen) | GPL-2.0-or-later | read/write tags; bundled in the Windows, Linux and macOS programs |
+| [customtkinter](https://github.com/TomSchimansky/CustomTkinter) | MIT | the window; bundled in the Windows, Linux and macOS programs |
+| [Pillow](https://python-pillow.org/) | MIT-CMU (HPND) | small covers in the window; bundled in the Windows, Linux and macOS programs |
+| [PyInstaller](https://pyinstaller.org/) | GPL-2.0-or-later with a bootloader exception | builds the Windows, Linux and macOS programs |
 | [Chromaprint / fpcalc](https://acoustid.org/chromaprint) | LGPL-2.1 (as a whole) | optional separate program, not included |
 
-The source code that corresponds to every `musictools.exe` is the tag of the same version in this repository. See `THIRD_PARTY.md` for details.
+The source code that corresponds to each executable is the tag of the same version in this repository. See `THIRD_PARTY.md` for details.

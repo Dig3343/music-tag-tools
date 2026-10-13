@@ -48,14 +48,21 @@ def set_app_id():
             pass
 
 
-def set_window_icon(window):
-    """Use assets/icon.ico (Windows) or assets/icon.png as the window icon, if present."""
+def set_window_icon(window, appearance_mode=None):
+    """Set the light/dark window icon when available, with the light icon as fallback."""
     try:
+        variant = "-dark" if str(appearance_mode).lower() == "dark" else ""
         if sys.platform.startswith("win"):
-            window.iconbitmap(str(resource_path("assets/icon.ico")))
+            icon = resource_path(f"assets/icon{variant}.ico")
+            if not icon.is_file() and variant:
+                icon = resource_path("assets/icon.ico")
+            window.iconbitmap(str(icon))
         else:
             import tkinter
-            window.iconphoto(True, tkinter.PhotoImage(file=str(resource_path("assets/icon.png"))))
+            icon = resource_path(f"assets/icon{variant}.png")
+            if not icon.is_file() and variant:
+                icon = resource_path("assets/icon.png")
+            window.iconphoto(True, tkinter.PhotoImage(file=str(icon)))
     except Exception:
         pass
 

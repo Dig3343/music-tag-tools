@@ -61,7 +61,7 @@ def run_gui():
     def px(value):                                  # size for plain tkinter widgets, which customtkinter does not scale
         return int(round(value * sc))
     for delay in (250, 900):                           # customtkinter sets its own icon late on Windows
-        root.after(delay, lambda: set_window_icon(root))
+        root.after(delay, lambda: set_window_icon(root, ctk.get_appearance_mode()))
     mono = ctk.CTkFont(family="Consolas" if sys.platform.startswith("win") else "DejaVu Sans Mono", size=12)
     bold = ctk.CTkFont(weight="bold")
     title_font = ctk.CTkFont(size=22, weight="bold")
@@ -708,7 +708,7 @@ def run_gui():
         win.title(f"musictools - {t('help_title')}")
         win.geometry("820x680")
         win.transient(root)
-        set_window_icon(win)          # set right away: a late icon change makes the window flash and close on Windows
+        set_window_icon(win, ctk.get_appearance_mode())  # set right away: a late icon change makes the window flash and close on Windows
         box = ctk.CTkTextbox(win, wrap="word", font=ctk.CTkFont(size=13))
         box.pack(fill="both", expand=True, padx=14, pady=(14, 8))
         box.tag_config("h", foreground=ACCENT)

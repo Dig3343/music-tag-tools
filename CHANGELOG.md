@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.3.0
+- Added an x86_64 Linux GUI executable, built by GitHub Actions and attached to releases as `musictools-linux-x86_64.tar.gz`.
+- Added separate macOS GUI apps for Apple silicon (`arm64`) and Intel (`x86_64`), built by GitHub Actions and attached to releases.
+- Refreshed the GUI icon with light/dark color variants, a cleaner player outline, and a simpler music note.
+
 ## 1.2.1
 - Rebuilt both GUI tab bars with evenly sized, rounded tabs that span their panels, removing the stray divider line.
 - Fixed the initial window size on high-DPI displays and made the Help window open and focus reliably on Windows.
