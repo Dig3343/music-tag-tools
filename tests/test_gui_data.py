@@ -37,8 +37,9 @@ class ReportTests(unittest.TestCase):
     def test_load_and_summarize(self):
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "tags_preview.csv"
-            path.write_text("sep=,\r\nfile,field,before,after,reason\r\nx/a.mp3,artist,A,B,rule\r\n"
-                            "x/b.mp3,artist,A,B,rule\r\nx/b.mp3,album,C,D,rule\r\n", encoding="utf-8-sig")
+            with open(path, "w", newline="", encoding="utf-8-sig") as fh:
+                fh.write("sep=,\r\nfile,field,before,after,reason\r\nx/a.mp3,artist,A,B,rule\r\n"
+                            "x/b.mp3,artist,A,B,rule\r\nx/b.mp3,album,C,D,rule\r\n")
             header, rows = gui_data.load_report(path)
             self.assertEqual(header[0], "file")
             self.assertEqual(len(rows), 3)

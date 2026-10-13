@@ -151,7 +151,7 @@ def find_report(out_dir, command, apply, since):
 def load_report(path):
     """Rows of a report as a list of lists (without the 'sep=,' line and the header), plus the header."""
     with open(path, newline="", encoding="utf-8-sig") as fh:
-        lines = fh.read().splitlines()
+        lines = [line for line in fh.read().splitlines() if line.strip()]
     if lines and lines[0].lower().startswith("sep="):
         lines = lines[1:]
     rows = list(csv.reader(lines))
